@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "solvatron"
+version = "0.1.0"
+description = "A debugging tool for conda solves."
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+  "License :: OSI Approved :: BSD License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+requires-python = ">=3.12"
+dependencies = []  # see tool.pixi.dependencies
+
+[tool.pixi.workspace]
+authors = ["jaimergp <jaimergp@users.noreply.github.com>"]
+channels = ["conda-forge"]
+name = "solvatron"
+platforms = ["linux-64", "win-64", "osx-arm64"]
+version = "0.1.0"
+
+[tool.pixi.tasks]
+cli = "python -m solvatron"
+
+[tool.pixi.dependencies]
+python = "3.12.*"
+colorama = "*"
+conda = "25.11.*"
+conda-rattler-solver = "*"
+libmambapy = "2.4.*"
+mamba = "2.4.*"
+pixi = "0.61.*"
+py-rattler = "0.18.*"
+
+[tool.pixi.pypi-dependencies]
+solvatron = { path = ".", editable = true }
+
+[tool.ruff]
+line-length = 99
+show-fixes = true
+target-version = "py312"
+
+[tool.pixi.feature.test.tasks]
+test = "python -m pytest"
+[tool.pixi.feature.test.dependencies]
+pytest = "*"
+
+[tool.pixi.environments]
+test = ["test"]

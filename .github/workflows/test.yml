@@ -1,0 +1,42 @@
+name: Test
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+    paths:
+      - ".github/workflows/test.yml"
+      - "src/**"
+      - "tests/**"
+      - "pyproject.toml"
+      - "pixi.lock"
+
+concurrency:
+  # Concurrency group that uses the workflow name and PR number if available
+  # or commit SHA as a fallback. If a new build is triggered under that
+  # concurrency group while a previous build is running it will be canceled.
+  # Repeated pushes to a PR will cancel all previous builds, while multiple
+  # merges to main will not cancel.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          fetch-depth: 0
+      - uses: prefix-dev/setup-pixi@82d477f15f3a381dbcc8adc1206ce643fe110fb7 # v0.9.3
+        with:
+          environments: test
+      - name: Run tests
+        run: pixi run --environment test test --basetemp=${{ runner.os == 'Windows' && 'D:\\temp' || runner.temp }} -vv
