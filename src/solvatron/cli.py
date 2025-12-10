@@ -47,6 +47,8 @@ def main(args: argparse.Namespace) -> int:
     import time
     from datetime import timedelta
 
+    from rattler import MatchSpec
+
     from .common import SolutionNotFound, color_diff, report, solve
 
     specs = args.specs
@@ -82,6 +84,7 @@ def main(args: argparse.Namespace) -> int:
         print(title)
         print("-" * len(title))
 
+    requested_names = [MatchSpec(spec, strict=False).name.normalized for spec in specs]
     for solver in args.solver:
         t0 = time.perf_counter()
         try:
@@ -120,7 +123,12 @@ def main(args: argparse.Namespace) -> int:
                     f"- only in {args.solver[0]}",
                     f"+ only in {args.solver[1]}",
                     "",
-                    "Diff:",
+                    "Requested specs diff:",
+                    *ndiff(
+                        [str(r) for r in results[0] if r.name in requested_names],
+                        [str(r) for r in results[1] if r.name in requested_names],
+                    ),
+                    "All packages diff:",
                     *ndiff(
                         list(map(str, results[0])),
                         list(map(str, results[1])),
