@@ -1,5 +1,8 @@
 if __name__ == "__main__":
     import sys
-    from .cli import cli, main
+    from .cli import ArgumentError, cli, main
 
-    sys.exit(main(cli()))
+    try:
+        sys.exit(main(cli()))
+    except ArgumentError as exc:
+        sys.exit(f"ArgumentError: {exc}")

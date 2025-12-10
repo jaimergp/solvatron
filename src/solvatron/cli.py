@@ -1,9 +1,17 @@
 import argparse
+import os
 from difflib import ndiff
 from pathlib import Path
 
 
+class ArgumentError(Exception): ...
+
+
 def cli(args: list[str] | None = None):
+    from typing import get_args
+
+    from rattler.platform import PlatformLiteral
+
     from .common import KNOWN_SOLVERS
 
     p = argparse.ArgumentParser(
@@ -33,7 +41,12 @@ def cli(args: list[str] | None = None):
         choices=KNOWN_SOLVERS,
         help="Which solver to use. Can be used several times.",
     )
-    p.add_argument("--platform", help="Platform (or subdir) to run solves for; e.g. 'linux-64'.")
+    p.add_argument(
+        "--platform",
+        choices=[p for p in get_args(PlatformLiteral) if p not in ("unknown", "noarch")],
+        help="Platform (or subdir) to run solves for; e.g. 'linux-64'. "
+        "If cross-solving, make sure to set appropriate CONDA_OVERRIDE_* environment variables.",
+    )
     p.add_argument(
         "-f",
         "--file",
@@ -47,7 +60,7 @@ def main(args: argparse.Namespace) -> int:
     import time
     from datetime import timedelta
 
-    from rattler import MatchSpec
+    from rattler import MatchSpec, Platform
 
     from .common import SolutionNotFound, color_diff, report, solve
 
@@ -61,17 +74,40 @@ def main(args: argparse.Namespace) -> int:
             ]
         )
     if not specs:
-        raise ValueError("One or more specs are required.")
+        raise ArgumentError("One or more specs are required.")
     if not args.solver:
-        raise ValueError("One or more solvers are required.")
+        raise ArgumentError("One or more solvers are required.")
     if not args.channel:
-        raise ValueError("One or more channels are required.")
+        raise ArgumentError("One or more channels are required.")
     if args.compare and not len(args.solver):
-        raise ValueError(
-            f"With --compare, two solvers MUST be passed, but you passed {len(args.solver)}."
+        raise ArgumentError(
+            args.compare,
+            f"With --compare, two solvers MUST be passed, but you passed {len(args.solver)}.",
         )
     if args.platform:
         subdirs = [args.platform, "noarch"]
+        target_os = args.platform.split("-")[0]
+        if not str(Platform.current()).startswith(target_os):
+            if target_os == "linux" and not all(
+                os.environ.get(f"CONDA_OVERRIDE_{var}") for var in ("LINUX", "GLIBC", "UNIX")
+            ):
+                raise ArgumentError(
+                    "When cross-solving for linux, you must set __glibc, __unix and __linux; e.g.\n"
+                    "CONDA_OVERRIDE_GLIBC=2.17 CONDA_OVERRIDE_LINUX=5 CONDA_OVERRIDE_UNIX=1 "
+                    "python -m solvatron ..."
+                )
+            elif target_os == "osx" and not all(
+                os.environ.get(f"CONDA_OVERRIDE_{var}") for var in ("OSX", "UNIX")
+            ):
+                raise ArgumentError(
+                    "When cross-solving for macOS, you must set the OSX version; e.g.:\n"
+                    "CONDA_OVERRIDE_OSX=11.0 python -m solvatron ..."
+                )
+            elif target_os == "win" and not os.environ.get("CONDA_OVERRIDE_WIN"):
+                raise ArgumentError(
+                    "When cross-solving for Windows, you must set the Windows version; e.g.:\n"
+                    "CONDA_OVERRIDE_WIN=10 python -m solvatron ..."
+                )
     else:
         subdirs = None
 
