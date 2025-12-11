@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 KNOWN_SOLVERS: tuple[str, ...] = (
     "conda",
+    "conda-classic-solver",
     "conda-libmamba-solver",
     "conda-rattler-solver",
     "libmambapy",
@@ -38,6 +39,10 @@ def solver_to_callable(solver: str):
         from .conda import solve
 
         return partial(solve, solver="rattler")
+    elif solver == "conda-classic-solver":
+        from .conda import solve
+
+        return partial(solve, solver="classic")
     if solver == "libmambapy":
         from .libmambapy import solve
 
